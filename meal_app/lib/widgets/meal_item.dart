@@ -6,17 +6,22 @@ import '../screens/meal_details_screen.dart';
 
 class MealItem extends StatelessWidget {
   final Meal meal;
-  final Function removeMeal;
+  final Function addToFavorite;
+  final Function removeFromFavorite;
+  final Function favoriteContains;
 
-  MealItem(this.meal, this.removeMeal);
+  MealItem(
+    this.meal,
+    this.addToFavorite,
+    this.removeFromFavorite,
+    this.favoriteContains,
+  );
 
   void selectMeal(BuildContext ctx) {
     Navigator.of(ctx).pushNamed(
       MealDetailsScreen.routeName,
       arguments: {'meal': meal},
-    ).then((mealId) {
-      removeMeal(mealId);
-    });
+    );
   }
 
   @override
@@ -60,6 +65,33 @@ class MealItem extends StatelessWidget {
                       ),
                       softWrap: true,
                       overflow: TextOverflow.fade,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  child: InkWell(
+                    onTap: () {
+                      if (favoriteContains(meal.id)) {
+                        removeFromFavorite(meal.id);
+                      } else {
+                        addToFavorite(meal.id);
+                      }
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey,
+                        borderRadius: BorderRadius.only(
+                            topRight: Radius.circular(15),
+                            bottomLeft: Radius.circular(15)),
+                      ),
+                      child: Icon(
+                        Icons.star,
+                        color: favoriteContains(meal.id)
+                            ? Theme.of(context).accentColor
+                            : Colors.white,
+                        size: 45,
+                      ),
                     ),
                   ),
                 )
