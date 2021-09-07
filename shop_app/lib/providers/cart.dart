@@ -61,7 +61,7 @@ class Cart with ChangeNotifier {
     notifyListeners();
   }
 
-  void placeOrder() {
+  void clear() {
     _items = {};
     notifyListeners();
   }
