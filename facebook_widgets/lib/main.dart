@@ -4,6 +4,7 @@ import './birthday_card.dart';
 import './new_post.dart';
 import './posts_title.dart';
 import './post.dart';
+import './classes_card_screen.dart';
 
 void main() {
   runApp(MyApp());
@@ -14,9 +15,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Facbook widgets',
       theme: ThemeData(primarySwatch: Colors.indigo),
       home: MyHomePage(title: 'Facbook widgets'),
+      routes: {
+        ClassesCardScreen.routeName: (_) => ClassesCardScreen(),
+      },
     );
   }
 }
@@ -37,6 +42,12 @@ class MyHomePage extends StatelessWidget {
         appBar: appBar,
         body: ListView(
           children: [
+            TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pushNamed(ClassesCardScreen.routeName);
+                },
+                icon: Icon(Icons.fitness_center),
+                label: Text('Exercises')),
             BirthdayCard(),
             NewPost(),
             PostsTitle(),
