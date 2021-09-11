@@ -9,10 +9,22 @@ class AddEditProductScreen extends StatefulWidget {
 
 class _AddEditProductScreenState extends State<AddEditProductScreen> {
   final _imageUrlContrller = TextEditingController();
+  final _imageUrlFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    _imageUrlFocusNode.addListener(_updateImageUrl);
+    super.initState();
+  }
 
   @override
   void dispose() {
     _imageUrlContrller.dispose();
+    super.dispose();
+  }
+
+  void _updateImageUrl() {
+    setState(() {});
   }
 
   @override
@@ -70,9 +82,14 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                                   style: TextStyle(color: Colors.grey),
                                 ),
                               )
-                            : FittedBox(
-                                fit: BoxFit.cover,
-                                child: Image.network(_imageUrlContrller.text),
+                            : Padding(
+                                padding: const EdgeInsets.all(2.0),
+                                child: FittedBox(
+                                  fit: BoxFit.cover,
+                                  child: Image.network(
+                                    _imageUrlContrller.text,
+                                  ),
+                                ),
                               ),
                       ),
                       Expanded(
@@ -84,6 +101,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                           onEditingComplete: () {
                             setState(() {});
                           },
+                          focusNode: _imageUrlFocusNode,
                         ),
                       ),
                     ],
