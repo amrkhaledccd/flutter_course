@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/products.dart';
 
 class AddEditProductScreen extends StatefulWidget {
   static final routeName = "/edit";
@@ -10,11 +13,35 @@ class AddEditProductScreen extends StatefulWidget {
 class _AddEditProductScreenState extends State<AddEditProductScreen> {
   final _imageUrlContrller = TextEditingController();
   final _imageUrlFocusNode = FocusNode();
+  final _form = GlobalKey<FormState>();
+  var formData = ProductFormData(null, '', '', 0.0, '');
+  var isInit = true;
 
   @override
   void initState() {
     _imageUrlFocusNode.addListener(_updateImageUrl);
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    if (isInit) {
+      final productId = ModalRoute.of(context)!.settings.arguments;
+
+      if (productId != null) {
+        var product =
+            Provider.of<Products>(context).findById(productId.toString());
+
+        formData.id = product.id;
+        formData.title = product.title;
+        formData.price = product.price;
+        formData.description = product.description;
+        formData.imageUrl = product.imageUrl;
+        _imageUrlContrller.text = product.imageUrl;
+      }
+    }
+    isInit = false;
+    super.didChangeDependencies();
   }
 
   @override
@@ -27,65 +54,181 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     setState(() {});
   }
 
+  void _saveForm() {
+    if (!_form.currentState!.validate()) {
+      return;
+    }
+    _form.currentState!.save();
+    var msg = 'Product added successfully';
+    final products = Provider.of<Products>(context, listen: false);
+    if (formData.id == null) {
+      products.addProduct(
+        formData.title,
+        formData.description,
+        formData.price,
+        formData.imageUrl,
+      );
+
+      _form.currentState!.reset();
+
+      setState(() {
+        _imageUrlContrller.text = '';
+      });
+    } else {
+      msg = 'Product edited successfully';
+      products.editProduct(
+        formData.id!,
+        formData.title,
+        formData.description,
+        formData.price,
+        formData.imageUrl,
+      );
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        action: SnackBarAction(
+          label: 'Go to shop',
+          onPressed: () {
+            Navigator.of(context).pushReplacementNamed('/');
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus!.unfocus(),
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Add/Edit Product'),
+          title: Text(formData.id == null ? 'Add New Product' : 'Edit Product'),
+          actions: [
+            IconButton(
+              onPressed: _saveForm,
+              icon: Icon(Icons.save),
+            )
+          ],
         ),
         body: Form(
+          key: _form,
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: 'Title',
-                      icon: Icon(Icons.title),
+                  RoundTextField(
+                    child: TextFormField(
+                      initialValue: formData.title,
+                      style: TextStyle(color: Theme.of(context).primaryColor),
+                      decoration: InputDecoration(
+                        labelText: 'Title',
+                        labelStyle: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        icon: Icon(
+                          Icons.title,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        border: InputBorder.none,
+                      ),
+                      textInputAction: TextInputAction.next,
+                      onSaved: (value) => formData.title = value.toString(),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a title';
+                        }
+                        return null;
+                      },
                     ),
-                    textInputAction: TextInputAction.next,
                   ),
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: 'Price',
-                      icon: Icon(Icons.money),
+                  RoundTextField(
+                    child: TextFormField(
+                      initialValue: formData.price.toString(),
+                      style: TextStyle(color: Theme.of(context).primaryColor),
+                      decoration: InputDecoration(
+                        labelText: 'Price',
+                        labelStyle: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        icon: Icon(
+                          Icons.money,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        border: InputBorder.none,
+                      ),
+                      textInputAction: TextInputAction.next,
+                      keyboardType: TextInputType.number,
+                      onSaved: (value) => formData.price = double.parse(
+                        value.toString(),
+                      ),
+                      validator: (value) {
+                        if (value == null || double.tryParse(value) == null) {
+                          return 'Please enter a valid number';
+                        }
+                        return null;
+                      },
                     ),
-                    textInputAction: TextInputAction.next,
-                    keyboardType: TextInputType.number,
                   ),
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: 'Description',
-                      icon: Icon(Icons.description),
+                  RoundTextField(
+                    child: TextFormField(
+                      initialValue: formData.description,
+                      style: TextStyle(color: Theme.of(context).primaryColor),
+                      decoration: InputDecoration(
+                        labelText: 'Description',
+                        labelStyle: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        icon: Icon(
+                          Icons.description,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        border: InputBorder.none,
+                      ),
+                      maxLines: 3,
+                      keyboardType: TextInputType.multiline,
+                      onSaved: (value) =>
+                          formData.description = value.toString(),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a description';
+                        }
+
+                        if (value.length < 10) {
+                          return 'Description must be 10 or more characters';
+                        }
+
+                        return null;
+                      },
                     ),
-                    maxLines: 3,
-                    keyboardType: TextInputType.multiline,
                   ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Container(
-                        width: 100,
-                        height: 100,
-                        margin: EdgeInsets.fromLTRB(0, 10, 10, 0),
+                        width: 120,
+                        height: 120,
+                        margin: EdgeInsets.fromLTRB(0, 10, 10, 10),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(8),
+                          color: _imageUrlContrller.text.isNotEmpty
+                              ? Colors.transparent
+                              : Theme.of(context).primaryColorLight,
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: _imageUrlContrller.text.isEmpty
                             ? Center(
                                 child: Text(
                                   'Image preview',
-                                  style: TextStyle(color: Colors.grey),
+                                  style: TextStyle(
+                                      color: Theme.of(context).primaryColor),
                                 ),
                               )
-                            : Padding(
-                                padding: const EdgeInsets.all(2.0),
-                                child: FittedBox(
-                                  fit: BoxFit.cover,
+                            : FittedBox(
+                                fit: BoxFit.fitHeight,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(30),
                                   child: Image.network(
                                     _imageUrlContrller.text,
                                   ),
@@ -93,17 +236,51 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                               ),
                       ),
                       Expanded(
-                        child: TextFormField(
-                          decoration:
-                              InputDecoration(labelText: 'Enter iamge url'),
-                          keyboardType: TextInputType.url,
-                          controller: _imageUrlContrller,
-                          onEditingComplete: () {
-                            setState(() {});
-                          },
-                          focusNode: _imageUrlFocusNode,
+                        child: RoundTextField(
+                          child: TextFormField(
+                            style: TextStyle(
+                                color: Theme.of(context).primaryColor),
+                            decoration: InputDecoration(
+                              labelText: 'Image url',
+                              labelStyle: TextStyle(
+                                color: Theme.of(context).primaryColor,
+                              ),
+                              icon: Icon(
+                                Icons.image,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                              border: InputBorder.none,
+                            ),
+                            keyboardType: TextInputType.url,
+                            controller: _imageUrlContrller,
+                            onEditingComplete: () {
+                              final urlPattern =
+                                  r"(https?:\/\/.*\.(?:png|jpg))";
+                              if (new RegExp(urlPattern, caseSensitive: false)
+                                      .firstMatch(
+                                          _imageUrlContrller.text.toString()) ==
+                                  null) {
+                                return;
+                              }
+                              setState(() {});
+                            },
+                            focusNode: _imageUrlFocusNode,
+                            onFieldSubmitted: (_) => _saveForm(),
+                            onSaved: (value) =>
+                                formData.imageUrl = value.toString(),
+                            validator: (value) {
+                              final urlPattern =
+                                  r"(https?:\/\/.*\.(?:png|jpg|jpeg))";
+                              if (new RegExp(urlPattern, caseSensitive: false)
+                                      .firstMatch(value.toString()) ==
+                                  null) {
+                                return 'Please enter a valid URL';
+                              }
+                              return null;
+                            },
+                          ),
                         ),
-                      ),
+                      )
                     ],
                   ),
                 ],
@@ -114,4 +291,39 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       ),
     );
   }
+}
+
+class RoundTextField extends StatelessWidget {
+  final Widget child;
+
+  RoundTextField({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 10),
+      margin: EdgeInsets.symmetric(vertical: 10, horizontal: 5),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        color: Theme.of(context).primaryColorLight,
+      ),
+      child: child,
+    );
+  }
+}
+
+class ProductFormData {
+  String? id;
+  String title;
+  String description;
+  double price;
+  String imageUrl;
+
+  ProductFormData(
+    this.id,
+    this.title,
+    this.description,
+    this.price,
+    this.imageUrl,
+  );
 }
