@@ -16,6 +16,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   final _form = GlobalKey<FormState>();
   var formData = ProductFormData(null, '', '', 0.0, '');
   var isInit = true;
+  var _isLoading = false;
 
   @override
   void initState() {
@@ -59,23 +60,42 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       return;
     }
     _form.currentState!.save();
-    var msg = 'Product added successfully';
+
+    setState(() {
+      _isLoading = true;
+    });
+
     final products = Provider.of<Products>(context, listen: false);
     if (formData.id == null) {
-      products.addProduct(
+      products
+          .addProduct(
         formData.title,
         formData.description,
         formData.price,
         formData.imageUrl,
-      );
-
-      _form.currentState!.reset();
-
-      setState(() {
-        _imageUrlContrller.text = '';
+      )
+          .catchError((error, _) {
+        return showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+                  title: Text('error'),
+                  content: Text('Something went wrong'),
+                  actions: [
+                    TextButton(
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                        },
+                        child: Text('Ok')),
+                  ],
+                ));
+      }).then((_) {
+        print("this should execute after catching error");
+        setState(() {
+          _isLoading = false;
+        });
+        Navigator.of(context).pop();
       });
     } else {
-      msg = 'Product edited successfully';
       products.editProduct(
         formData.id!,
         formData.title,
@@ -83,19 +103,11 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         formData.price,
         formData.imageUrl,
       );
+      setState(() {
+        _isLoading = false;
+      });
+      Navigator.of(context).pop();
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        action: SnackBarAction(
-          label: 'Go to shop',
-          onPressed: () {
-            Navigator.of(context).pushReplacementNamed('/');
-          },
-        ),
-      ),
-    );
   }
 
   @override
@@ -112,182 +124,194 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             )
           ],
         ),
-        body: Form(
-          key: _form,
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  RoundTextField(
-                    child: TextFormField(
-                      initialValue: formData.title,
-                      style: TextStyle(color: Theme.of(context).primaryColor),
-                      decoration: InputDecoration(
-                        labelText: 'Title',
-                        labelStyle: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        icon: Icon(
-                          Icons.title,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        border: InputBorder.none,
-                      ),
-                      textInputAction: TextInputAction.next,
-                      onSaved: (value) => formData.title = value.toString(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a title';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  RoundTextField(
-                    child: TextFormField(
-                      initialValue: formData.price.toString(),
-                      style: TextStyle(color: Theme.of(context).primaryColor),
-                      decoration: InputDecoration(
-                        labelText: 'Price',
-                        labelStyle: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        icon: Icon(
-                          Icons.money,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        border: InputBorder.none,
-                      ),
-                      textInputAction: TextInputAction.next,
-                      keyboardType: TextInputType.number,
-                      onSaved: (value) => formData.price = double.parse(
-                        value.toString(),
-                      ),
-                      validator: (value) {
-                        if (value == null || double.tryParse(value) == null) {
-                          return 'Please enter a valid number';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  RoundTextField(
-                    child: TextFormField(
-                      initialValue: formData.description,
-                      style: TextStyle(color: Theme.of(context).primaryColor),
-                      decoration: InputDecoration(
-                        labelText: 'Description',
-                        labelStyle: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        icon: Icon(
-                          Icons.description,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        border: InputBorder.none,
-                      ),
-                      maxLines: 3,
-                      keyboardType: TextInputType.multiline,
-                      onSaved: (value) =>
-                          formData.description = value.toString(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a description';
-                        }
-
-                        if (value.length < 10) {
-                          return 'Description must be 10 or more characters';
-                        }
-
-                        return null;
-                      },
-                    ),
-                  ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 120,
-                        margin: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                        decoration: BoxDecoration(
-                          color: _imageUrlContrller.text.isNotEmpty
-                              ? Colors.transparent
-                              : Theme.of(context).primaryColorLight,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: _imageUrlContrller.text.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'Image preview',
-                                  style: TextStyle(
-                                      color: Theme.of(context).primaryColor),
-                                ),
-                              )
-                            : FittedBox(
-                                fit: BoxFit.fitHeight,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(30),
-                                  child: Image.network(
-                                    _imageUrlContrller.text,
-                                  ),
-                                ),
-                              ),
-                      ),
-                      Expanded(
-                        child: RoundTextField(
+        body: _isLoading
+            ? Center(
+                child: CircularProgressIndicator(),
+              )
+            : Form(
+                key: _form,
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      children: [
+                        RoundTextField(
                           child: TextFormField(
+                            initialValue: formData.title,
                             style: TextStyle(
                                 color: Theme.of(context).primaryColor),
                             decoration: InputDecoration(
-                              labelText: 'Image url',
+                              labelText: 'Title',
                               labelStyle: TextStyle(
                                 color: Theme.of(context).primaryColor,
                               ),
                               icon: Icon(
-                                Icons.image,
+                                Icons.title,
                                 color: Theme.of(context).primaryColor,
                               ),
                               border: InputBorder.none,
                             ),
-                            keyboardType: TextInputType.url,
-                            controller: _imageUrlContrller,
-                            onEditingComplete: () {
-                              final urlPattern =
-                                  r"(https?:\/\/.*\.(?:png|jpg))";
-                              if (new RegExp(urlPattern, caseSensitive: false)
-                                      .firstMatch(
-                                          _imageUrlContrller.text.toString()) ==
-                                  null) {
-                                return;
-                              }
-                              setState(() {});
-                            },
-                            focusNode: _imageUrlFocusNode,
-                            onFieldSubmitted: (_) => _saveForm(),
+                            textInputAction: TextInputAction.next,
                             onSaved: (value) =>
-                                formData.imageUrl = value.toString(),
+                                formData.title = value.toString(),
                             validator: (value) {
-                              final urlPattern =
-                                  r"(https?:\/\/.*\.(?:png|jpg|jpeg))";
-                              if (new RegExp(urlPattern, caseSensitive: false)
-                                      .firstMatch(value.toString()) ==
-                                  null) {
-                                return 'Please enter a valid URL';
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a title';
                               }
                               return null;
                             },
                           ),
                         ),
-                      )
-                    ],
+                        RoundTextField(
+                          child: TextFormField(
+                            initialValue: formData.price.toString(),
+                            style: TextStyle(
+                                color: Theme.of(context).primaryColor),
+                            decoration: InputDecoration(
+                              labelText: 'Price',
+                              labelStyle: TextStyle(
+                                color: Theme.of(context).primaryColor,
+                              ),
+                              icon: Icon(
+                                Icons.money,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                              border: InputBorder.none,
+                            ),
+                            textInputAction: TextInputAction.next,
+                            keyboardType: TextInputType.number,
+                            onSaved: (value) => formData.price = double.parse(
+                              value.toString(),
+                            ),
+                            validator: (value) {
+                              if (value == null ||
+                                  double.tryParse(value) == null) {
+                                return 'Please enter a valid number';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        RoundTextField(
+                          child: TextFormField(
+                            initialValue: formData.description,
+                            style: TextStyle(
+                                color: Theme.of(context).primaryColor),
+                            decoration: InputDecoration(
+                              labelText: 'Description',
+                              labelStyle: TextStyle(
+                                color: Theme.of(context).primaryColor,
+                              ),
+                              icon: Icon(
+                                Icons.description,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                              border: InputBorder.none,
+                            ),
+                            maxLines: 3,
+                            keyboardType: TextInputType.multiline,
+                            onSaved: (value) =>
+                                formData.description = value.toString(),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a description';
+                              }
+
+                              if (value.length < 10) {
+                                return 'Description must be 10 or more characters';
+                              }
+
+                              return null;
+                            },
+                          ),
+                        ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Container(
+                              width: 120,
+                              height: 120,
+                              margin: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                              decoration: BoxDecoration(
+                                color: _imageUrlContrller.text.isNotEmpty
+                                    ? Colors.transparent
+                                    : Theme.of(context).primaryColorLight,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: _imageUrlContrller.text.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        'Image preview',
+                                        style: TextStyle(
+                                            color:
+                                                Theme.of(context).primaryColor),
+                                      ),
+                                    )
+                                  : FittedBox(
+                                      fit: BoxFit.fitHeight,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(30),
+                                        child: Image.network(
+                                          _imageUrlContrller.text,
+                                        ),
+                                      ),
+                                    ),
+                            ),
+                            Expanded(
+                              child: RoundTextField(
+                                child: TextFormField(
+                                  style: TextStyle(
+                                      color: Theme.of(context).primaryColor),
+                                  decoration: InputDecoration(
+                                    labelText: 'Image url',
+                                    labelStyle: TextStyle(
+                                      color: Theme.of(context).primaryColor,
+                                    ),
+                                    icon: Icon(
+                                      Icons.image,
+                                      color: Theme.of(context).primaryColor,
+                                    ),
+                                    border: InputBorder.none,
+                                  ),
+                                  keyboardType: TextInputType.url,
+                                  controller: _imageUrlContrller,
+                                  onEditingComplete: () {
+                                    final urlPattern =
+                                        r"(https?:\/\/.*\.(?:png|jpg))";
+                                    if (new RegExp(urlPattern,
+                                                caseSensitive: false)
+                                            .firstMatch(_imageUrlContrller.text
+                                                .toString()) ==
+                                        null) {
+                                      return;
+                                    }
+                                    setState(() {});
+                                  },
+                                  focusNode: _imageUrlFocusNode,
+                                  onFieldSubmitted: (_) => _saveForm(),
+                                  onSaved: (value) =>
+                                      formData.imageUrl = value.toString(),
+                                  validator: (value) {
+                                    final urlPattern =
+                                        r"(https?:\/\/.*\.(?:png|jpg|jpeg))";
+                                    if (new RegExp(urlPattern,
+                                                caseSensitive: false)
+                                            .firstMatch(value.toString()) ==
+                                        null) {
+                                      return 'Please enter a valid URL';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            )
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ),
       ),
     );
   }
