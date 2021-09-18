@@ -59,19 +59,18 @@ class Products with ChangeNotifier {
     String description,
     double price,
     String imageUrl,
-  ) {
+  ) async {
     final baseURL =
         "https://flutter-shop-21b26-default-rtdb.europe-west1.firebasedatabase.app/products";
 
-    return http
-        .post(Uri.parse(baseURL),
-            body: json.encode({
-              'title': title,
-              'description': description,
-              'price': price,
-              'imageUrl': imageUrl
-            }))
-        .then((response) {
+    try {
+      final response = await http.post(Uri.parse(baseURL),
+          body: json.encode({
+            'title': title,
+            'description': description,
+            'price': price,
+            'imageUrl': imageUrl
+          }));
       _items.add(Product(
         id: json.decode(response.body)['name'],
         title: title,
@@ -80,7 +79,10 @@ class Products with ChangeNotifier {
         imageUrl: imageUrl,
       ));
       notifyListeners();
-    });
+    } catch (e) {
+      print('Something went wrong');
+      throw e;
+    }
   }
 
   void editProduct(String id, String title, String description, double price,

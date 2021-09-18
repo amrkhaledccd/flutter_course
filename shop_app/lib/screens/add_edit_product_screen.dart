@@ -55,7 +55,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     setState(() {});
   }
 
-  void _saveForm() {
+  void _saveForm() async {
     if (!_form.currentState!.validate()) {
       return;
     }
@@ -67,15 +67,15 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
     final products = Provider.of<Products>(context, listen: false);
     if (formData.id == null) {
-      products
-          .addProduct(
-        formData.title,
-        formData.description,
-        formData.price,
-        formData.imageUrl,
-      )
-          .catchError((error, _) {
-        return showDialog(
+      try {
+        await products.addProduct(
+          formData.title,
+          formData.description,
+          formData.price,
+          formData.imageUrl,
+        );
+      } catch (e) {
+        await showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
                   title: Text('error'),
@@ -88,13 +88,13 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                         child: Text('Ok')),
                   ],
                 ));
-      }).then((_) {
+      } finally {
         print("this should execute after catching error");
         setState(() {
           _isLoading = false;
         });
         Navigator.of(context).pop();
-      });
+      }
     } else {
       products.editProduct(
         formData.id!,
