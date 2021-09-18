@@ -12,6 +12,7 @@ class UserProductItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     return Card(
       child: ListTile(
         leading: CircleAvatar(
@@ -49,10 +50,16 @@ class UserProductItem extends StatelessWidget {
                                       Navigator.of(context).pop(true),
                                   child: Text("Yes")),
                             ],
-                          )).then((value) {
+                          )).then((value) async {
                     if (value!) {
-                      Provider.of<Products>(context, listen: false)
-                          .removeProduct(id);
+                      try {
+                        await Provider.of<Products>(context, listen: false)
+                            .removeProduct(id);
+                      } catch (error) {
+                        scaffoldMessenger.showSnackBar(SnackBar(
+                          content: Text('Failed to delete product'),
+                        ));
+                      }
                     }
                   });
                 },

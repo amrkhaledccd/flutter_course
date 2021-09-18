@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shop_app/models/http_exception.dart';
 
 import 'product.dart';
 
@@ -46,6 +48,31 @@ class Products with ChangeNotifier {
     return [..._items];
   }
 
+  Future<void> fetchProducts() async {
+    final baseURL =
+        "https://flutter-shop-21b26-default-rtdb.europe-west1.firebasedatabase.app/products.json";
+    try {
+      final response = await http.get(Uri.parse(baseURL));
+      final Map<String, dynamic> extractedData = json.decode(response.body);
+      List<Product> loadedProducts = [];
+      extractedData.forEach(
+        (prodId, prodData) => loadedProducts.add(
+          Product(
+            id: prodId,
+            title: prodData['title'],
+            description: prodData['description'],
+            price: prodData['price'],
+            imageUrl: prodData['imageUrl'],
+          ),
+        ),
+      );
+      _items = loadedProducts;
+      notifyListeners();
+    } catch (error) {
+      throw error;
+    }
+  }
+
   List<Product> get favoriteItems {
     return _items.where((prod) => prod.isFavorite).toList();
   }
@@ -61,7 +88,7 @@ class Products with ChangeNotifier {
     String imageUrl,
   ) async {
     final baseURL =
-        "https://flutter-shop-21b26-default-rtdb.europe-west1.firebasedatabase.app/products";
+        "https://flutter-shop-21b26-default-rtdb.europe-west1.firebasedatabase.app/products.json";
 
     try {
       final response = await http.post(Uri.parse(baseURL),
@@ -85,19 +112,43 @@ class Products with ChangeNotifier {
     }
   }
 
-  void editProduct(String id, String title, String description, double price,
-      String imageUrl) {
+  Future<void> editProduct(String id, String title, String description,
+      double price, String imageUrl) async {
     final index = _items.indexWhere((prod) => prod.id == id);
-    _items[index] = Product(
-        id: id,
-        title: title,
-        description: description,
-        price: price,
-        imageUrl: imageUrl);
-    notifyListeners();
+    if (index != -1) {
+      final baseURL =
+          "https://flutter-shop-21b26-default-rtdb.europe-west1.firebasedatabase.app/products/$id.json";
+
+      await http.patch(
+        Uri.parse(baseURL),
+        body: json.encode({
+          'title': title,
+          'description': description,
+          'price': price,
+          'imageUrl': imageUrl
+        }),
+      );
+
+      _items[index] = Product(
+          id: id,
+          title: title,
+          description: description,
+          price: price,
+          imageUrl: imageUrl);
+      notifyListeners();
+    }
   }
 
-  void removeProduct(String id) {
+  Future<void> removeProduct(String id) async {
+    final baseURL =
+        "https://flutter-shop-21b26-default-rtdb.europe-west1.firebasedatabase.app/products/$id.json";
+
+    var response = await http.delete(Uri.parse(baseURL));
+
+    if (response.statusCode >= 400) {
+      throw HttpException('Failed to delete product [id: $id]');
+    }
+
     _items.removeWhere((prod) => prod.id == id);
     notifyListeners();
   }

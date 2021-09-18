@@ -88,26 +88,20 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                         child: Text('Ok')),
                   ],
                 ));
-      } finally {
-        print("this should execute after catching error");
-        setState(() {
-          _isLoading = false;
-        });
-        Navigator.of(context).pop();
       }
     } else {
-      products.editProduct(
+      await products.editProduct(
         formData.id!,
         formData.title,
         formData.description,
         formData.price,
         formData.imageUrl,
       );
-      setState(() {
-        _isLoading = false;
-      });
-      Navigator.of(context).pop();
     }
+    setState(() {
+      _isLoading = false;
+    });
+    Navigator.of(context).pop();
   }
 
   @override
