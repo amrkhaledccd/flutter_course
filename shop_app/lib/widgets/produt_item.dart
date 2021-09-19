@@ -10,6 +10,7 @@ class ProductItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final product = Provider.of<Product>(context, listen: false);
     final cart = Provider.of<Cart>(context, listen: false);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
@@ -38,8 +39,13 @@ class ProductItem extends StatelessWidget {
               icon: Icon(product.isFavorite
                   ? Icons.favorite
                   : Icons.favorite_border_outlined),
-              onPressed: () {
-                product.toggleFavorite();
+              onPressed: () async {
+                await product.toggleFavorite().catchError((e) {
+                  scaffoldMessenger.hideCurrentSnackBar();
+                  scaffoldMessenger.showSnackBar(SnackBar(
+                    content: Text(e.toString()),
+                  ));
+                });
               },
             ),
           ),

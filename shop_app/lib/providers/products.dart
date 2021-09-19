@@ -1,11 +1,9 @@
 import 'dart:convert';
-import 'dart:ffi';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shop_app/models/http_exception.dart';
 
+import '../models/http_exception.dart';
 import 'product.dart';
 
 class Products with ChangeNotifier {
@@ -63,6 +61,7 @@ class Products with ChangeNotifier {
             description: prodData['description'],
             price: prodData['price'],
             imageUrl: prodData['imageUrl'],
+            isFavorite: prodData['isFavorite'],
           ),
         ),
       );
@@ -96,7 +95,8 @@ class Products with ChangeNotifier {
             'title': title,
             'description': description,
             'price': price,
-            'imageUrl': imageUrl
+            'imageUrl': imageUrl,
+            'isFavorite': false,
           }));
       _items.add(Product(
         id: json.decode(response.body)['name'],
