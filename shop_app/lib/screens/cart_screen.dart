@@ -11,6 +11,7 @@ class CartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cart = Provider.of<Cart>(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -40,10 +41,17 @@ class CartScreen extends StatelessWidget {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {
-                      Provider.of<Orders>(context, listen: false)
-                          .addOrder(cart.items.values.toList(), cart.total);
-                      cart.clear();
+                    onPressed: () async {
+                      try {
+                        await Provider.of<Orders>(context, listen: false)
+                            .addOrder(cart.items.values.toList(), cart.total);
+                        cart.clear();
+                      } catch (error) {
+                        scaffoldMessenger.clearSnackBars();
+                        scaffoldMessenger.showSnackBar(SnackBar(
+                          content: Text('Error while adding order'),
+                        ));
+                      }
                     },
                     child: Text("Order Now"),
                   ),
