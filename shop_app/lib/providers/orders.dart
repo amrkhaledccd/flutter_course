@@ -20,6 +20,10 @@ class OrderItem {
 
 class Orders with ChangeNotifier {
   List<OrderItem> _orders = [];
+  final String? _authToken;
+  final String? _userId;
+
+  Orders(this._authToken, this._userId, this._orders);
 
   List<OrderItem> get orders {
     return _orders;
@@ -27,11 +31,14 @@ class Orders with ChangeNotifier {
 
   Future<void> fetchOrders() async {
     final baseURL =
-        "https://flutter-shop-21b26-default-rtdb.europe-west1.firebasedatabase.app/orders.json";
+        'https://flutter-shop-21b26-default-rtdb.europe-west1.firebasedatabase.app/orders.json?auth=$_authToken&orderBy="creatorId"&equalTo="$_userId"';
     final response = await http.get(Uri.parse(baseURL));
     final Map<String, dynamic> fetchedOrders = json.decode(response.body);
     List<OrderItem> loadedOrders = [];
 
+    if (fetchedOrders == null) {
+      return;
+    }
     fetchedOrders.forEach((itemId, orderData) {
       List<CartItem> cartItems = [];
 
@@ -56,11 +63,12 @@ class Orders with ChangeNotifier {
     });
 
     _orders = loadedOrders;
+    notifyListeners();
   }
 
   Future<void> addOrder(List<CartItem> cartItems, double total) async {
     final baseURL =
-        "https://flutter-shop-21b26-default-rtdb.europe-west1.firebasedatabase.app/orders.json";
+        "https://flutter-shop-21b26-default-rtdb.europe-west1.firebasedatabase.app/orders.json?auth=$_authToken";
 
     final now = DateTime.now();
 
@@ -69,6 +77,7 @@ class Orders with ChangeNotifier {
           body: json.encode({
             'amount': total,
             'createdAt': now.toString(),
+            'creatorId': _userId,
             'cartItems': cartItems
                 .map(
                   (item) => json.encode({
@@ -86,7 +95,7 @@ class Orders with ChangeNotifier {
         OrderItem(
           id: json.decode(response.body)['name'],
           amount: total,
-          createAt: DateTime.now(),
+          createAt: now,
           cartItems: cartItems,
         ),
       );

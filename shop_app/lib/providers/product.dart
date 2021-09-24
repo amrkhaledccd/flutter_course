@@ -21,15 +21,13 @@ class Product with ChangeNotifier {
     this.isFavorite = false,
   });
 
-  Future<void> toggleFavorite() async {
+  Future<void> toggleFavorite(String token, String userId) async {
     final baseURL =
-        "https://flutter-shop-21b26-default-rtdb.europe-west1.firebasedatabase.app/products/$id.json";
+        "https://flutter-shop-21b26-default-rtdb.europe-west1.firebasedatabase.app/user_favorites/$userId/$id.json?auth=$token";
 
     try {
-      final response = await http.patch(Uri.parse(baseURL),
-          body: json.encode({
-            'isFavorite': !isFavorite,
-          }));
+      final response =
+          await http.put(Uri.parse(baseURL), body: json.encode(!isFavorite));
 
       if (response.statusCode >= 400) {
         throw HttpException('Failed to toggle favorite');
